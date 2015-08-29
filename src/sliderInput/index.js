@@ -1,9 +1,11 @@
 require('./index.less');
-var $ = require('jquery');
+
 var React = require('react');
 var Draggable = require('./react-draggable.js');
 
 var rValidNum = /^[0-9\.]+$/;
+
+var nullfn = function() {};
 
 /**
  * snap a number to certain length with specific steps
@@ -36,7 +38,6 @@ function stopEvent(e) {
 	e.preventDefault();
 }
 
-
 var SliderInput = React.createClass({
 	canSlide: false,
 	getInitialState: function() {
@@ -54,6 +55,7 @@ var SliderInput = React.createClass({
 			indicate: false,
 			step: 1,
 			editable: true,
+			onChange: nullfn,
 		}
 	},
 	propTypes: {
@@ -64,11 +66,16 @@ var SliderInput = React.createClass({
 		indicate: React.PropTypes.bool,
 		step: React.PropTypes.number,
 		editable: React.PropTypes.bool,
+		onChange: React.PropTypes.function,
 	},
 	// to break the React controlled input limit, we have to manually
 	// update its value.
 	componentDidUpdate: function() {
-		this.refs.input.getDOMNode().value = snap(this.val(), this.props.step);
+		if (this.refs.input)
+			this.refs.input.getDOMNode().value = this.val();
+
+		// @TODO: a bit bad here.
+		this.props.onChange(this.val());
 	},
 	_onClick: function(e) {
 		e.stopPropagation();
@@ -101,10 +108,19 @@ var SliderInput = React.createClass({
 		});
 	},
 	_onInputBlur: function(e) {
-		this.val(e.target.value);
+		if (!rValidNum.test(e.target.value)) {
+			return e.target.value = this.val(); 
+		}
+		if (this.val() !== e.target.value) {
+			this.val(e.target.value);
+		}
 	},
 	_onInputClick: function(e) {
 		e.stopPropagation();
+		if(!this.props.editable) {
+			e.preventDefault();
+			return false;
+		}
 	},
 	_onInputKeypress: function(e) {
 		if (e.key === 'Enter') {
@@ -119,7 +135,7 @@ var SliderInput = React.createClass({
 				progress: ratio
 			});
 		}
-		return this.state.progress * (this.props.max - this.props.min) + this.props.min;
+		return snap(this.state.progress * (this.props.max - this.props.min) + this.props.min, this.props.step);
 	},
 	render: function() {
 		var bgcolor = this.state.dragging ? "#9CD2FF" : "#6bb5f2";
@@ -143,7 +159,7 @@ var SliderInput = React.createClass({
 					overflow: 'hidden',
 					lineHeight: '20px',
 				};
-		var value = snap(this.val(), this.props.step);
+		var value = this.val();
 		return (
 			<div className="slider-input" onClick={this._onClick}>
 				<input type="hidden" name={this.props.name} value={value} />
@@ -162,13 +178,14 @@ var SliderInput = React.createClass({
 						<div className="slider-badge" ref="badge" style={badgeStyle} onClick={stopEvent}>
 							{ this.props.indicate &&
 									<input className="slider-indicate" type="text"
-										readOnly={this.state.dragging}
+										readOnly={!this.props.editable || this.state.dragging}
 										defaultValue={value}
 										ref='input'
 										style={inidicateStyle}
 										onKeyPress={this._onInputKeypress}
 										onBlur={this._onInputBlur}
-										onClick={this._onInputClick}/>}
+										onClick={this._onInputClick}/>
+							}
 						</div>
 					</Draggable>
 				</div>

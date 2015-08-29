@@ -1,7 +1,7 @@
 
 var React = require('react');
 var emptyFunction = function(){};
-var assign = require('lodash').assign;
+var assign = require('lodash/object/assign');
 var classNames = function() {
 
 	var classes = '';

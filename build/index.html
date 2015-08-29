@@ -3,12 +3,52 @@
   <head>
     <meta charset="UTF-8">
     <title>Webpack App</title>
-    
-    
+    <style>
+    	body {
+    		font-family: Helvetica, sans-serif
+    	}
+			.main {
+				width: 800px;
+				margin: 0 auto;
+			}
+			h2 {
+				color: rgba(0,0,0, .78);
+			}
+			section {
+				margin: 80px 0;
+			}
+    </style>
   </head>
   <body>
-    
+    <script src='./vendor.js'></script>
+    <script src='./sliderInput.js'></script>
     <script src="./bundle.js"></script>
-    <div id="slider"></div>
+    <div class="main">
+    	<section>
+    		<h2>normal slider ranging from 0 to 1 with 0.01 as step</h2>
+    		<h3 class="value">50</h3>
+    		<div class="slider"></div>
+    	</section>
+    	<section>
+    		<h2>normal slider ranging from 0 to 100 with 1 as step</h2>
+    		<h3 class="value">0</h3>
+    		<div class="slider"></div>
+    	</section>
+    	<section>
+    		<h2>slider with non-editable indicator</h2>
+    		<h3 class="value">0</h3>
+    		<div class="slider"></div>
+    	</section>
+    	<section>
+    		<h2>slider with editable indicator</h2>
+    		<h3 class="value">30</h3>
+    		<div class="slider"></div>
+    	</section>
+    	<section>
+    		<h2>slider sized in 300</h2>
+    		<h3 class="value">0</h3>
+    		<div class="slider"></div>
+    	</section>
+    </div>
   </body>
 </html>

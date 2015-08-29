@@ -8,6 +8,7 @@
 
 .clearfix {
 	&:before, &:after {
+		content: '';
 		display: table;
 	}
 	&:after {
@@ -16,14 +17,15 @@
 }
 
 .slider-input {
+	.clearfix();
 	height: 28px;
-	margin-top: 8px;
 	font-family: Helvetica
 }
 .slider-track {
 	.clearfix();
 	background-color: @slider-track-bg;
 	height: 4px;
+	margin-top: 8px;
 
 	.slider-badge {
 		border-radius: 50%;
