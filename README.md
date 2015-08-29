@@ -28,16 +28,27 @@ the initial progress
 
 #### `max`
 - Number
-- Default: 0
+- Default: 100
 
 #### `indicate`
+- Bool
+- Default: false
+
+specify if there is an indicator.
+
 #### `step`
+- Number
+- Default: 1
+
+specify the step of value change.
+
 #### `editable`
+- Bool
+- Default: true
+
+specify the if the indicator is editable.
+
 #### `onChange`
-	size: 400,
-	min: 0,
-	max: 100,
-	indicate: false,
-	step: 1,
-	editable: true,
-	onChange: nullfn,
+- Function
+
+callback invoked each time slider's value is changed
