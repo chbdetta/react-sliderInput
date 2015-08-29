@@ -1,0 +1,18 @@
+{
+  "globals": {
+    "require": true
+  },
+  "ecmaFeatures": {
+    "blockBindings": true,
+    "jsx": true,
+    "spread": true,
+    "templateStrings": true,
+    "arrowFunctions": true,
+    "forOf": true,
+    "generators": true,
+    "modules": true
+  },
+  "rules": {
+    "semi": 0
+  }
+}
