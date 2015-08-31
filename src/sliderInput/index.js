@@ -34,9 +34,21 @@ function between(val, min, max) {
 	return Math.min(Math.max(min, val), max);
 }
 
+/**
+ * To prevent text selection while dragging.
+ * http://stackoverflow.com/questions/5429827/how-can-i-prevent-text-element-selection-with-cursor-drag
+ */
 function stopEvent(e) {
-	e.stopPropagation();
-	e.preventDefault();
+	if (e.stopPropagation) e.stopPropagation();
+	if (e.preventDefault) e.preventDefault();
+	e.cancelBubble = true;
+	e.returnValue = false;
+	return false;
+}
+
+function stopPropagation(e) {
+  if (e.stopPropagation) e.stopPropagation();
+  e.cancelBubble = true;
 }
 
 var SliderInput = React.createClass({
@@ -57,6 +69,7 @@ var SliderInput = React.createClass({
 			step: 1,
 			editable: true,
 			onChange: nullfn,
+			onChangeStop: nullfn,
 			badgeSize: 20,
 			percentageMode: false
 		}
@@ -71,14 +84,15 @@ var SliderInput = React.createClass({
 		step: React.PropTypes.number,
 		editable: React.PropTypes.bool,
 		percentageMode: React.PropTypes.bool,
+		onChangeStop: React.PropTypes.function,
 		onChange: React.PropTypes.function,
 	},
-	// to break the React controlled input limit, we have to manually
-	// update its value.
 	componentDidUpdate: function() {
-		this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
 		// @TODO: a bit bad here.
 		this.props.onChange(this.val());
+		if (!this.state.dragging) {
+			this.props.onChangeStop(this.val());
+		}
 	},
 	_onClick: function(e) {
 		e.stopPropagation();
@@ -98,7 +112,7 @@ var SliderInput = React.createClass({
 		});
 	},
 	_onDragStart: function(e, ui) {
-		e.stopPropagation();
+		stopEvent(e);
 		this.setState({
 			dragging: true,
 		});
@@ -111,11 +125,11 @@ var SliderInput = React.createClass({
 		});
 	},
 	_onInputBlur: function(e) {
-		if (this.val(e.target.value) !== true) {
-			this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
+		if (this.val(e.target.innerHTML) !== true) {
+			e.target.innerHTML = this.formatIndicate();
 		}
 	},
-	_onInputClick: function(e) {
+	_onInputMouseDown: function(e) {
 		e.stopPropagation();
 		if(!this.props.editable) {
 			e.preventDefault();
@@ -125,16 +139,23 @@ var SliderInput = React.createClass({
 	_onInputKeypress: function(e) {
 		if (e.key === 'Enter') {
 			e.target.blur();
+			// Workaround for webkit's bug
+			// http://stackoverflow.com/questions/4878713/how-can-i-blur-a-div-where-contenteditable-true
+      window.getSelection().removeAllRanges();
 		}
 	},
 	// return the true value of current state.
 	val: function(value) {
-		value = this.parseInput(value);
-		if (typeof value !== 'undefined' && value !== snap(this.state.progress, 0.01)) {
-			this.setState({
-				progress: value
-			});
-			return true;
+		if (typeof value !== 'undefined') {
+			value = this.parseInput(value);
+			if (typeof value !== 'undefined' && value !== snap(this.state.progress, 0.01)) {
+				this.setState({
+					progress: value
+				});
+				return true;
+			} else if(typeof value === 'undefined') {
+				this.forceUpdate();
+			}
 		}
 		return snap(this.state.progress * (this.props.max - this.props.min) + this.props.min, this.props.step);
 	},
@@ -166,7 +187,7 @@ var SliderInput = React.createClass({
 					boxSizing: 'border-box',
 					width: this.props.size,
 					position: 'relative',
-					backgroundImage: '-webkit-linear-gradient(left, transparent ' + this.state.progress * 100 + '%, #aaa 0%)'
+					backgroundImage: '-webkit-linear-gradient(left, transparent ' + this.state.progress * 100 + '%, #bbb 0%)'
 				},
 				badgeStyle = {
 					width: badgeSize,
@@ -179,13 +200,16 @@ var SliderInput = React.createClass({
 					position: 'absolute',
 					top: '100%',
 					marginTop: 5,
+					minWidth: 30,
+					left: -15 + this.props.badgeSize / 2 - 3,
+					display: 'block',
 					textAlign: 'center',
 					overflow: 'hidden',
 					lineHeight: '20px',
 				};
 
 		return (
-			<div className="slider-input" onClick={this._onClick}
+			<div className="slider-input" onMouseDown={this._onClick}
 				style={{
 					height: this.props.indicate ? badgeSize * 2 : badgeSize
 				}}>
@@ -205,18 +229,16 @@ var SliderInput = React.createClass({
 						onStart={this._onDragStart}
 						onStop={this._onDragStop}
 						ref="draggable">
-						<div className={"slider-badge" + className} ref="badge" style={badgeStyle} onClick={stopEvent}>
+						<div className={"slider-badge" + className} ref="badge" style={badgeStyle}>
 							{ this.props.indicate &&
-									<input
+									<div
+										contentEditable='true'
 										className="slider-indicate"
-										type="text"
-										disabled={!this.props.editable || this.state.dragging}
-										defaultValue={this.formatIndicate()}
 										ref='indicate'
 										style={inidicateStyle}
 										onKeyPress={this._onInputKeypress}
 										onBlur={this._onInputBlur}
-										onClick={this._onInputClick}/>
+										onMouseDown={this._onInputMouseDown}>{this.formatIndicate()}</div>
 							}
 						</div>
 					</Draggable>

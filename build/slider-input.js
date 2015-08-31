@@ -1,5 +1,14 @@
-exports["slider-input"] =
-/******/ (function(modules) { // webpackBootstrap
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(typeof exports === 'object' && typeof module === 'object')
+		module.exports = factory(require("react"), require("lodash/object/assign"));
+	else if(typeof define === 'function' && define.amd)
+		define(["react", "lodash/object/assign"], factory);
+	else if(typeof exports === 'object')
+		exports["slider-input"] = factory(require("react"), require("lodash/object/assign"));
+	else
+		root["slider-input"] = factory(root["react"], root["lodash/object/assign"]);
+})(this, function(__WEBPACK_EXTERNAL_MODULE_6__, __WEBPACK_EXTERNAL_MODULE_8__) {
+return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 
@@ -89,9 +98,21 @@ exports["slider-input"] =
 		return Math.min(Math.max(min, val), max);
 	}
 
+	/**
+	 * To prevent text selection while dragging.
+	 * http://stackoverflow.com/questions/5429827/how-can-i-prevent-text-element-selection-with-cursor-drag
+	 */
 	function stopEvent(e) {
-		e.stopPropagation();
-		e.preventDefault();
+		if (e.stopPropagation) e.stopPropagation();
+		if (e.preventDefault) e.preventDefault();
+		e.cancelBubble = true;
+		e.returnValue = false;
+		return false;
+	}
+
+	function stopPropagation(e) {
+		if (e.stopPropagation) e.stopPropagation();
+		e.cancelBubble = true;
 	}
 
 	var SliderInput = React.createClass({
@@ -114,6 +135,7 @@ exports["slider-input"] =
 				step: 1,
 				editable: true,
 				onChange: nullfn,
+				onChangeStop: nullfn,
 				badgeSize: 20,
 				percentageMode: false
 			};
@@ -128,14 +150,15 @@ exports["slider-input"] =
 			step: React.PropTypes.number,
 			editable: React.PropTypes.bool,
 			percentageMode: React.PropTypes.bool,
+			onChangeStop: React.PropTypes['function'],
 			onChange: React.PropTypes['function']
 		},
-		// to break the React controlled input limit, we have to manually
-		// update its value.
 		componentDidUpdate: function componentDidUpdate() {
-			this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
 			// @TODO: a bit bad here.
 			this.props.onChange(this.val());
+			if (!this.state.dragging) {
+				this.props.onChangeStop(this.val());
+			}
 		},
 		_onClick: function _onClick(e) {
 			e.stopPropagation();
@@ -155,7 +178,7 @@ exports["slider-input"] =
 			});
 		},
 		_onDragStart: function _onDragStart(e, ui) {
-			e.stopPropagation();
+			stopEvent(e);
 			this.setState({
 				dragging: true
 			});
@@ -168,11 +191,11 @@ exports["slider-input"] =
 			});
 		},
 		_onInputBlur: function _onInputBlur(e) {
-			if (this.val(e.target.value) !== true) {
-				this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
+			if (this.val(e.target.innerHTML) !== true) {
+				e.target.innerHTML = this.formatIndicate();
 			}
 		},
-		_onInputClick: function _onInputClick(e) {
+		_onInputMouseDown: function _onInputMouseDown(e) {
 			e.stopPropagation();
 			if (!this.props.editable) {
 				e.preventDefault();
@@ -182,16 +205,23 @@ exports["slider-input"] =
 		_onInputKeypress: function _onInputKeypress(e) {
 			if (e.key === 'Enter') {
 				e.target.blur();
+				// Workaround for webkit's bug
+				// http://stackoverflow.com/questions/4878713/how-can-i-blur-a-div-where-contenteditable-true
+				window.getSelection().removeAllRanges();
 			}
 		},
 		// return the true value of current state.
 		val: function val(value) {
-			value = this.parseInput(value);
-			if (typeof value !== 'undefined' && value !== snap(this.state.progress, 0.01)) {
-				this.setState({
-					progress: value
-				});
-				return true;
+			if (typeof value !== 'undefined') {
+				value = this.parseInput(value);
+				if (typeof value !== 'undefined' && value !== snap(this.state.progress, 0.01)) {
+					this.setState({
+						progress: value
+					});
+					return true;
+				} else if (typeof value === 'undefined') {
+					this.forceUpdate();
+				}
 			}
 			return snap(this.state.progress * (this.props.max - this.props.min) + this.props.min, this.props.step);
 		},
@@ -223,7 +253,7 @@ exports["slider-input"] =
 				boxSizing: 'border-box',
 				width: this.props.size,
 				position: 'relative',
-				backgroundImage: '-webkit-linear-gradient(left, transparent ' + this.state.progress * 100 + '%, #aaa 0%)'
+				backgroundImage: '-webkit-linear-gradient(left, transparent ' + this.state.progress * 100 + '%, #bbb 0%)'
 			},
 			    badgeStyle = {
 				width: badgeSize,
@@ -236,6 +266,9 @@ exports["slider-input"] =
 				position: 'absolute',
 				top: '100%',
 				marginTop: 5,
+				minWidth: 30,
+				left: -15 + this.props.badgeSize / 2 - 3,
+				display: 'block',
 				textAlign: 'center',
 				overflow: 'hidden',
 				lineHeight: '20px'
@@ -243,7 +276,7 @@ exports["slider-input"] =
 
 			return React.createElement(
 				'div',
-				{ className: 'slider-input', onClick: this._onClick,
+				{ className: 'slider-input', onMouseDown: this._onClick,
 					style: {
 						height: this.props.indicate ? badgeSize * 2 : badgeSize
 					} },
@@ -269,17 +302,19 @@ exports["slider-input"] =
 							ref: 'draggable' },
 						React.createElement(
 							'div',
-							{ className: "slider-badge" + className, ref: 'badge', style: badgeStyle, onClick: stopEvent },
-							this.props.indicate && React.createElement('input', {
-								className: 'slider-indicate',
-								type: 'text',
-								disabled: !this.props.editable || this.state.dragging,
-								defaultValue: this.formatIndicate(),
-								ref: 'indicate',
-								style: inidicateStyle,
-								onKeyPress: this._onInputKeypress,
-								onBlur: this._onInputBlur,
-								onClick: this._onInputClick })
+							{ className: "slider-badge" + className, ref: 'badge', style: badgeStyle },
+							this.props.indicate && React.createElement(
+								'div',
+								{
+									contentEditable: 'true',
+									className: 'slider-indicate',
+									ref: 'indicate',
+									style: inidicateStyle,
+									onKeyPress: this._onInputKeypress,
+									onBlur: this._onInputBlur,
+									onMouseDown: this._onInputMouseDown },
+								this.formatIndicate()
+							)
 						)
 					)
 				)
@@ -324,7 +359,7 @@ exports["slider-input"] =
 
 
 	// module
-	exports.push([module.id, ".clearfix:before,\n.clearfix:after {\n  content: '';\n  display: table;\n}\n.clearfix:after {\n  clear: both;\n}\n.slider-input {\n  font-family: Helvetica;\n}\n.slider-input:before,\n.slider-input:after {\n  content: '';\n  display: table;\n}\n.slider-input:after {\n  clear: both;\n}\n.slider-track {\n  background-color: #6bb5f2;\n  height: 4px;\n  margin-top: 8px;\n}\n.slider-track:before,\n.slider-track:after {\n  content: '';\n  display: table;\n}\n.slider-track:after {\n  clear: both;\n}\n.slider-track.active {\n  background-color: #9FD4FF;\n}\n.slider-track .slider-badge {\n  border-radius: 50%;\n  background-color: #6bb5f2;\n  width: 12px;\n  height: 12px;\n  position: absolute;\n  top: -8px;\n  cursor: default;\n  border: 3px solid #fff;\n  transition: border 140ms;\n}\n.slider-track .slider-badge.active {\n  background-color: #9FD4FF;\n  border-color: #9FD4FF;\n}\n.slider-track .slider-badge .slider-indicate {\n  color: rgba(0, 0, 0, 0.47);\n  padding: 0;\n  margin: 0;\n  outline: 0;\n  border: 0;\n  text-align: center;\n  width: 300%;\n  left: -100%;\n}\n.slider-track .slider-badge .slider-indicate:focus {\n  border-bottom: 1px solid #6bb5f2;\n  box-shadow: none;\n}\n.range-input {\n  width: 400px;\n  display: table;\n}\n.range-input > span {\n  width: 1%;\n}\n.range-input > span:first-child {\n  padding-right: 7px;\n}\n.range-input > span:last-child {\n  padding-left: 7px;\n}\n.range-input input[type=\"range\"] {\n  width: 100%;\n  vertical-align: middle;\n}\n", ""]);
+	exports.push([module.id, ".clearfix:before,\n.clearfix:after {\n  content: '';\n  display: table;\n}\n.clearfix:after {\n  clear: both;\n}\n.slider-input {\n  font-family: Helvetica;\n}\n.slider-input:before,\n.slider-input:after {\n  content: '';\n  display: table;\n}\n.slider-input:after {\n  clear: both;\n}\n.slider-track {\n  background-color: #6bb5f2;\n  height: 4px;\n  margin-top: 8px;\n}\n.slider-track:before,\n.slider-track:after {\n  content: '';\n  display: table;\n}\n.slider-track:after {\n  clear: both;\n}\n.slider-track.active {\n  background-color: #9FD4FF;\n}\n.slider-track .slider-badge {\n  border-radius: 50%;\n  background-color: #6bb5f2;\n  width: 12px;\n  height: 12px;\n  position: absolute;\n  top: -8px;\n  cursor: default;\n  border: 3px solid #fff;\n  transition: border 140ms;\n}\n.slider-track .slider-badge.active {\n  background-color: #9FD4FF;\n  border-color: #9FD4FF;\n}\n.slider-track .slider-badge .slider-indicate {\n  color: rgba(0, 0, 0, 0.47);\n  padding: 0;\n  margin: 0;\n  outline: 0;\n  border: 0;\n  text-align: center;\n}\n.slider-track .slider-badge .slider-indicate:focus {\n  border-bottom: 1px solid #6bb5f2;\n  box-shadow: none;\n}\n.range-input {\n  width: 400px;\n  display: table;\n}\n.range-input > span {\n  width: 1%;\n}\n.range-input > span:first-child {\n  padding-right: 7px;\n}\n.range-input > span:last-child {\n  padding-left: 7px;\n}\n.range-input input[type=\"range\"] {\n  width: 100%;\n  vertical-align: middle;\n}\n", ""]);
 
 	// exports
 
@@ -614,7 +649,7 @@ exports["slider-input"] =
 /* 6 */
 /***/ function(module, exports) {
 
-	module.exports = require("react");
+	module.exports = __WEBPACK_EXTERNAL_MODULE_6__;
 
 /***/ },
 /* 7 */
@@ -1402,7 +1437,9 @@ exports["slider-input"] =
 /* 8 */
 /***/ function(module, exports) {
 
-	module.exports = require("lodash/object/assign");
+	module.exports = __WEBPACK_EXTERNAL_MODULE_8__;
 
 /***/ }
-/******/ ]);
+/******/ ])
+});
+;
