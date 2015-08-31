@@ -1,7 +1,7 @@
 # react-sliderInput
-A slider(range) input React.js module
+A slider (range) input React.js module
 
-[demo]()
+[demo](http://chbdetta.github.io/react-sliderInput)
 
 ## Usage
 to build, simply do this in node:
@@ -11,14 +11,14 @@ webpack
 ```
 and now the bundled js is available at `build/slider-input.js`.
 
-to run the demo locally, make sure you do you already build it and then:
+to run the demo locally, make sure you've done step above and already built it:
 ```
 cd test
 webpack
 ```
 and then just open `test/index.html` to see the demo.
 
-## Options
+## Props
 - `size` the size of the slider in pixel. default: 300
 - `initialProgress` the initial progress. default: 0
 - `min` the minimum value. default: 0
@@ -26,7 +26,7 @@ and then just open `test/index.html` to see the demo.
 - `indicate` specify if there is an indicator. default: false
 - `step` specify the step of value change. default: 1
 - `editable` specify the if the indicator is editable. default: true
-- `onChange` callback invoked each time slider's value is changed (during dragging)
+- `onChange` callback invoked each time slider's value is changed (during dragging), provided with the current value of the slider
 - `onChangeStop` invoked only when value is changed and slider is not being dragged 
 
 ## Develop
