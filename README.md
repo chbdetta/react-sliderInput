@@ -1,7 +1,7 @@
 # react-sliderInput
 A slider (range) input React.js module
 
-[demo](http://chbdetta.github.io/react-sliderInput)
+[demo](http://chbdetta.github.io)
 
 ## Usage
 to build, simply do this in node:
