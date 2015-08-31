@@ -1,3 +1,9 @@
+require.config({
+	packages: ['']
+})
+
+var React = require('react');
+var SliderInput = require('sliderInput')
 
 window.onload = function() {
 	var containers = document.querySelectorAll('.slider');
@@ -10,5 +16,3 @@ window.onload = function() {
 	React.render(<SliderInput size={300} onChange={function(val) {valueCons[4].innerText=val;}}></SliderInput>, containers[4]);
 
 }
-
-

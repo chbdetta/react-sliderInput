@@ -2,10 +2,11 @@ require('./index.less');
 
 var React = require('react');
 var Draggable = require('./react-draggable.js');
-
-var rValidNum = /^[0-9\.]+$/;
+			
+var rValidNum = /^[0-9\.]+%?$/;
 
 var nullfn = function() {};
+
 
 /**
  * snap a number to certain length with specific steps
@@ -19,7 +20,7 @@ var nullfn = function() {};
  */
 function snap(value, step) {
 	var fixture = Math.abs(~~Math.log10(step));
-	return value.toFixed(fixture);
+	return parseFloat(value.toFixed(fixture));
 }
 
 // we only consider a horizontal slider
@@ -56,24 +57,26 @@ var SliderInput = React.createClass({
 			step: 1,
 			editable: true,
 			onChange: nullfn,
+			badgeSize: 20,
+			percentageMode: false
 		}
 	},
 	propTypes: {
 		initialProgress: React.PropTypes.any,
 		size: React.PropTypes.number,
+		badgeSize: React.PropTypes.number,
 		min: React.PropTypes.number,
 		max: React.PropTypes.number,
 		indicate: React.PropTypes.bool,
 		step: React.PropTypes.number,
 		editable: React.PropTypes.bool,
+		percentageMode: React.PropTypes.bool,
 		onChange: React.PropTypes.function,
 	},
 	// to break the React controlled input limit, we have to manually
 	// update its value.
 	componentDidUpdate: function() {
-		if (this.refs.input)
-			this.refs.input.getDOMNode().value = this.val();
-
+		this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
 		// @TODO: a bit bad here.
 		this.props.onChange(this.val());
 	},
@@ -108,11 +111,8 @@ var SliderInput = React.createClass({
 		});
 	},
 	_onInputBlur: function(e) {
-		if (!rValidNum.test(e.target.value)) {
-			return e.target.value = this.val(); 
-		}
-		if (this.val() !== e.target.value) {
-			this.val(e.target.value);
+		if (this.val(e.target.value) !== true) {
+			this.refs.indicate && (this.refs.indicate.getDOMNode().value = this.formatIndicate());
 		}
 	},
 	_onInputClick: function(e) {
@@ -127,60 +127,92 @@ var SliderInput = React.createClass({
 			e.target.blur();
 		}
 	},
+	// return the true value of current state.
 	val: function(value) {
-		if (value === '' || rValidNum.test(value)) {
-			var ratio = value / (this.props.max - this.props.min);
-			ratio = between(ratio, 0, 1);
-			return this.setState({
-				progress: ratio
+		value = this.parseInput(value);
+		if (typeof value !== 'undefined' && value !== snap(this.state.progress, 0.01)) {
+			this.setState({
+				progress: value
 			});
+			return true;
 		}
 		return snap(this.state.progress * (this.props.max - this.props.min) + this.props.min, this.props.step);
 	},
+	// parse the input according to `precentageMode`
+	parseInput: function(value) {
+		if (rValidNum.test(value)) {
+			if (this.props.percentageMode) {
+				value = parseInt(value) / 100;
+			} else {
+				value = value / (this.props.max - this.props.min);
+			}
+			return between(value, 0, 1);
+		}
+	},
+	// formatting the indicator
+	formatIndicate: function() {
+		var value ;
+		if (this.props.percentageMode) {
+			value = snap(this.state.progress * 100, 1) + '%';
+		} else {
+			value = this.val();
+		}
+		return value;
+	},
 	render: function() {
-		var bgcolor = this.state.dragging ? "#9CD2FF" : "#6bb5f2";
+		var className = this.state.dragging ? ' active' : "";
+		var badgeSize = this.props.badgeSize;		
 		var style = {
+					boxSizing: 'border-box',
 					width: this.props.size,
 					position: 'relative',
-					backgroundImage: '-webkit-linear-gradient(left, ' + bgcolor + ' ' + this.state.progress * 100 + '%, transparent 0%)'
+					backgroundImage: '-webkit-linear-gradient(left, transparent ' + this.state.progress * 100 + '%, #aaa 0%)'
 				},
 				badgeStyle = {
+					width: badgeSize,
+					height: badgeSize,
+					boxSizing: 'border-box',
 					position: 'absolute',
-					background: bgcolor,
-					borderColor: this.state.dragging ? "#78AEF5" : "#5B9DF4"
+					top: -badgeSize / 2 + 2
 				},
 				inidicateStyle = {
 					position: 'absolute',
 					top: '100%',
 					marginTop: 5,
-					width: '200%',
-					left: '-50%',
 					textAlign: 'center',
 					overflow: 'hidden',
 					lineHeight: '20px',
 				};
-		var value = this.val();
+
 		return (
-			<div className="slider-input" onClick={this._onClick}>
-				<input type="hidden" name={this.props.name} value={value} />
-				<div className="slider-track" style={style} ref="track">
+			<div className="slider-input" onClick={this._onClick}
+				style={{
+					height: this.props.indicate ? badgeSize * 2 : badgeSize
+				}}>
+				<input type="hidden" name={this.props.name} value={this.val()} />
+				<div className={"slider-track" + className} style={style} ref="track">
 					<Draggable
 						axis='x'
 						handle='.slider-badge'
 						start={{x: (this.state.progress * 100) + '%', y:0}}
-						moveOnStartChange={!this.state.dragging} 
-						bounds='parent'
+						moveOnStartChange={!this.state.dragging}
+						bounds={{
+							left: -badgeSize / 2,
+							right: this.props.size - badgeSize / 2
+						}}
 						zIndex={100}
 						onDrag={this._onDrag}
 						onStart={this._onDragStart}
 						onStop={this._onDragStop}
 						ref="draggable">
-						<div className="slider-badge" ref="badge" style={badgeStyle} onClick={stopEvent}>
+						<div className={"slider-badge" + className} ref="badge" style={badgeStyle} onClick={stopEvent}>
 							{ this.props.indicate &&
-									<input className="slider-indicate" type="text"
-										readOnly={!this.props.editable || this.state.dragging}
-										defaultValue={value}
-										ref='input'
+									<input
+										className="slider-indicate"
+										type="text"
+										disabled={!this.props.editable || this.state.dragging}
+										defaultValue={this.formatIndicate()}
+										ref='indicate'
 										style={inidicateStyle}
 										onKeyPress={this._onInputKeypress}
 										onBlur={this._onInputBlur}

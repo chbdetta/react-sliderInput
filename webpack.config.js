@@ -1,15 +1,15 @@
 var path = require('path');
-var CommonsChunkPlugin = require("webpack/lib/optimize/CommonsChunkPlugin");
+var UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin');
 
 module.exports = {
   entry: {
-    bundle: "./src/index",
-    sliderInput: ['sliderInput'],
-    vendor: ["react", "lodash"],
+    'slider-input': ['sliderInput'],
   },
   output: {
     path: "./build/",
     filename: "[name].js",
+    libraryTarget: 'commonjs',
+    library: 'slider-input'
   },
   module: {
     loaders: [
@@ -22,14 +22,21 @@ module.exports = {
   devServer: {
     hot: true,
     inline: true,
-    contentBase: "./build",
     colors: true,
   },
   resolve: {
     root: path.resolve(__dirname, './src'),
     modulesDirectories: ['node_modules', 'bower_components']
   },
-  plugins: [
-    new CommonsChunkPlugin('vendor', '[name].js'),
-  ],
+  externals: {
+    react: true,
+    'lodash/object/assign': true
+  },
+  // plugins: [
+  //   new UglifyJsPlugin({
+  //     compress: {
+  //       warnings: false
+  //     }
+  //   })
+  // ]
 }
