@@ -102,8 +102,12 @@
 			var containers = document.querySelectorAll('.slider');
 			var valueCons = document.querySelectorAll('.value');
 
-			React.render(React.creatElement(SliderInput, { indicate: false, max: 1, step: 0.01, initialProgress: 0, onChange: function onChange(val) {
+			React.render(React.createElement(SliderInput, { indicate: false, max: 1, step: 0.01,
+				onChange: function (val) {
 					valueCons[0].innerText = val;
+				},
+				onChangeStop: function (val) {
+					console.log(val);
 				} }), containers[0]);
 			React.render(React.createElement(SliderInput, { indicate: false, max: 100, step: 1, initialProgress: 50, onChange: function (val) {
 					valueCons[1].innerText = val;
@@ -112,6 +116,9 @@
 					valueCons[2].innerText = val;
 				} }), containers[2]);
 			React.render(React.createElement(SliderInput, { indicate: true, initialProgress: 30, onChange: function (val) {
+					valueCons[3].innerText = val;
+				} }), containers[3]);
+			React.render(React.createElement(SliderInput, { indicate: true, percentageMode: true, initialProgress: 30, onChange: function (val) {
 					valueCons[3].innerText = val;
 				} }), containers[3]);
 			React.render(React.createElement(SliderInput, { size: 300, onChange: function (val) {
