@@ -75,7 +75,22 @@ var SliderInput = React.createClass({
 		}
 	},
 	propTypes: {
-		initialProgress: React.PropTypes.any,
+		/**
+		 * initial progress
+		 *
+		 * type `Number` denote to the real value of the slider
+		 * e.g when `max` is 100, `min` is 0, and when setting `initialProgress`
+		 * to 50, the slider will be at the center of the track.
+		 * 
+		 */
+		initialProgress: React.PropTypes.number,
+		/**
+		 * the width of the track, the height of the track can be modified
+		 * by css.
+		 *
+		 * since the track box-sizing is border-box, size will always
+		 * ensure the track take space denote by size
+		 */
 		size: React.PropTypes.number,
 		badgeSize: React.PropTypes.number,
 		min: React.PropTypes.number,
@@ -94,16 +109,30 @@ var SliderInput = React.createClass({
 			this.props.onChangeStop(this.val());
 		}
 	},
-	_onClick: function(e) {
-		e.stopPropagation();
+	_onMouseDown: function(e) {
+		stopEvent(e);
+
 		var bounds = this.refs.draggable.getBounds();
 		var badgeHalfWidth = this.refs.badge.getDOMNode().getBoundingClientRect().width / 2;
+		var clientX = e.clientX, clientY = e.clientY;
+
 		bounds.left += badgeHalfWidth;
 		bounds.right += badgeHalfWidth;
 		this.setState({
 			// Attention: the range of click event isn't the same as drag event
 			progress: computeProgress(bounds, e.clientX - e.target.getBoundingClientRect().left)
+		}, function() {
+			this.refs.draggable.startDrag({
+				clientX: clientX,
+				clientY: clientY
+			});
 		});
+	},
+
+	// convert touch start event to click event.
+	_onTouchStart: function(e) {
+		e.clientX = e.touches[0].clientX;
+		this._onMouseDown(e);
 	},
 	_onDrag: function(e, ui) {
 		e.stopPropagation();
@@ -112,6 +141,7 @@ var SliderInput = React.createClass({
 		});
 	},
 	_onDragStart: function(e, ui) {
+		// prevent the editable div to be selected when mouse enter it.
 		stopEvent(e);
 		this.setState({
 			dragging: true,
@@ -209,7 +239,7 @@ var SliderInput = React.createClass({
 				};
 
 		return (
-			<div className="slider-input" onMouseDown={this._onClick}
+			<div className="slider-input" onTouchStart={this._onTouchStart} onMouseDown={this._onMouseDown}
 				style={{
 					height: this.props.indicate ? badgeSize * 2 : badgeSize
 				}}>

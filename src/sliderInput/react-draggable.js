@@ -210,6 +210,13 @@ function getBounds(draggable) {
   return bounds;
 }
 
+/**
+ * force clientX and clientY inside the boundary.
+ * @param  {object} bounds  bounds object with left,right,bottom,top
+ * @param  {number} clientX X
+ * @param  {number} clientY Y
+ * @return {array} array of clientX, clientY
+ */
 function getBoundPosition(bounds, clientX, clientY) {
   // Keep x and y below right and bottom limits...
   if (isNum(bounds.right)) clientX = Math.min(clientX, bounds.right);
@@ -592,22 +599,9 @@ module.exports = React.createClass({
       clientX: props.start.x, clientY: props.start.y
     };
   },
-
-  handleDragStart: function (e) {
-    // Set touch identifier in component state if this is a touch event
-    if(e.targetTouches){
-      this.setState({touchIdentifier: e.targetTouches[0].identifier});
-    }
-    
-    // Make it possible to attach event handlers on top of this one
-    this.props.onMouseDown(e);
-
-    // Short circuit if handle or cancel prop was provided and selector doesn't match
-    if ((this.props.handle && !matchesSelector(e.target, this.props.handle)) ||
-      (this.props.cancel && matchesSelector(e.target, this.props.cancel))) {
-      return;
-    }
-
+  // abstract this so that drag can be started manually
+  // e should be an object with properties `clientX` and `clientY`
+  startDrag: function(e) {
     // Call event handler. If it returns explicit false, cancel.
     var shouldStart = this.props.onStart(e, createUIEvent(this));
     if (shouldStart === false) return;
@@ -634,6 +628,22 @@ module.exports = React.createClass({
     addEvent(document, 'scroll', this.handleScroll);
     addEvent(document, dragEventFor.move, this.handleDrag);
     addEvent(document, dragEventFor.end, this.handleDragEnd);
+  },
+  handleDragStart: function (e) {
+    // Set touch identifier in component state if this is a touch event
+    if(e.targetTouches){
+      this.setState({touchIdentifier: e.targetTouches[0].identifier});
+    }
+    
+    // Make it possible to attach event handlers on top of this one
+    this.props.onMouseDown(e);
+
+    // Short circuit if handle or cancel prop was provided and selector doesn't match
+    if ((this.props.handle && !matchesSelector(e.target, this.props.handle)) ||
+      (this.props.cancel && matchesSelector(e.target, this.props.cancel))) {
+      return;
+    }
+    this.startDrag(e); 
   },
 
   handleDragEnd: function (e) {

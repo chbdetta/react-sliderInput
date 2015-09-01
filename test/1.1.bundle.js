@@ -20518,7 +20518,22 @@ webpackJsonp([1],[
 						};
 					},
 					propTypes: {
-						initialProgress: React.PropTypes.any,
+						/**
+	      * initial progress
+	      *
+	      * type `Number` denote to the real value of the slider
+	      * e.g when `max` is 100, `min` is 0, and when setting `initialProgress`
+	      * to 50, the slider will be at the center of the track.
+	      * 
+	      */
+						initialProgress: React.PropTypes.number,
+						/**
+	      * the width of the track, the height of the track can be modified
+	      * by css.
+	      *
+	      * since the track box-sizing is border-box, size will always
+	      * ensure the track take space denote by size
+	      */
 						size: React.PropTypes.number,
 						badgeSize: React.PropTypes.number,
 						min: React.PropTypes.number,
@@ -20537,16 +20552,24 @@ webpackJsonp([1],[
 							this.props.onChangeStop(this.val());
 						}
 					},
-					_onClick: function _onClick(e) {
+					_onMouseDown: function _onMouseDown(e) {
 						e.stopPropagation();
 						var bounds = this.refs.draggable.getBounds();
 						var badgeHalfWidth = this.refs.badge.getDOMNode().getBoundingClientRect().width / 2;
 						bounds.left += badgeHalfWidth;
 						bounds.right += badgeHalfWidth;
-						this.setState({
-							// Attention: the range of click event isn't the same as drag event
-							progress: computeProgress(bounds, e.clientX - e.target.getBoundingClientRect().left)
-						});
+
+						this.refs.draggable.startDrag(e);
+						// this.setState({
+						// 	// Attention: the range of click event isn't the same as drag event
+						// 	progress: computeProgress(bounds, e.clientX - e.target.getBoundingClientRect().left)
+						// });
+					},
+
+					// convert touch start event to click event.
+					_onTouchStart: function _onTouchStart(e) {
+						e.clientX = e.touches[0].clientX;
+						this._onMouseDown(e);
 					},
 					_onDrag: function _onDrag(e, ui) {
 						e.stopPropagation();
@@ -20651,7 +20674,7 @@ webpackJsonp([1],[
 							lineHeight: '20px'
 						};
 
-						return React.createElement('div', { className: 'slider-input', onMouseDown: this._onClick,
+						return React.createElement('div', { className: 'slider-input', onTouchStart: this._onTouchStart, onMouseDown: this._onMouseDown,
 							style: {
 								height: this.props.indicate ? badgeSize * 2 : badgeSize
 							} }, React.createElement('input', { type: 'hidden', name: this.props.name, value: this.val() }), React.createElement('div', { className: "slider-track" + className, style: style, ref: 'track' }, React.createElement(Draggable, {
@@ -21207,6 +21230,13 @@ webpackJsonp([1],[
 					return bounds;
 				}
 
+				/**
+	    * force clientX and clientY inside the boundary.
+	    * @param  {object} bounds  bounds object with left,right,bottom,top
+	    * @param  {number} clientX X
+	    * @param  {number} clientY Y
+	    * @return {array} array of clientX, clientY
+	    */
 				function getBoundPosition(bounds, clientX, clientY) {
 					// Keep x and y below right and bottom limits...
 					if (isNum(bounds.right)) clientX = Math.min(clientX, bounds.right);
@@ -21584,21 +21614,9 @@ webpackJsonp([1],[
 							clientX: props.start.x, clientY: props.start.y
 						};
 					},
-
-					handleDragStart: function handleDragStart(e) {
-						// Set touch identifier in component state if this is a touch event
-						if (e.targetTouches) {
-							this.setState({ touchIdentifier: e.targetTouches[0].identifier });
-						}
-
-						// Make it possible to attach event handlers on top of this one
-						this.props.onMouseDown(e);
-
-						// Short circuit if handle or cancel prop was provided and selector doesn't match
-						if (this.props.handle && !matchesSelector(e.target, this.props.handle) || this.props.cancel && matchesSelector(e.target, this.props.cancel)) {
-							return;
-						}
-
+					// abstract this so that drag can be started manually
+					// e should be an object with properties `clientX` and `clientY`
+					startDrag: function startDrag(e) {
 						// Call event handler. If it returns explicit false, cancel.
 						var shouldStart = this.props.onStart(e, createUIEvent(this));
 						if (shouldStart === false) return;
@@ -21624,6 +21642,22 @@ webpackJsonp([1],[
 						addEvent(document, 'scroll', this.handleScroll);
 						addEvent(document, dragEventFor.move, this.handleDrag);
 						addEvent(document, dragEventFor.end, this.handleDragEnd);
+					},
+					handleDragStart: function handleDragStart(e) {
+						// Set touch identifier in component state if this is a touch event
+						if (e.targetTouches) {
+							this.setState({ touchIdentifier: e.targetTouches[0].identifier });
+						}
+
+						// Make it possible to attach event handlers on top of this one
+						this.props.onMouseDown(e);
+
+						// Short circuit if handle or cancel prop was provided and selector doesn't match
+						if (this.props.handle && !matchesSelector(e.target, this.props.handle) || this.props.cancel && matchesSelector(e.target, this.props.cancel)) {
+							return;
+						}
+
+						startDrag(e);
 					},
 
 					handleDragEnd: function handleDragEnd(e) {
