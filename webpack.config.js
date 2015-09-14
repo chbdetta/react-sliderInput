@@ -1,5 +1,4 @@
 var path = require('path');
-var UglifyJsPlugin = require('webpack/lib/optimize/UglifyJsPlugin');
 
 module.exports = {
   entry: {
@@ -8,8 +7,8 @@ module.exports = {
   output: {
     path: "./build/",
     filename: "[name].js",
-    libraryTarget: 'umd',
-    library: 'slider-input'
+    libraryTarget: 'var',
+    library: 'SliderInput'
   },
   module: {
     loaders: [
@@ -24,15 +23,7 @@ module.exports = {
     modulesDirectories: ['node_modules', 'bower_components']
   },
   externals: {
-    react: true,
-    'lodash/object/assign': true
-  },
-  watch: true
-  // plugins: [
-  //   new UglifyJsPlugin({
-  //     compress: {
-  //       warnings: false
-  //     }
-  //   })
-  // ]
+    react: 'var React',
+    'lodash/object/assign': false
+  }
 }
